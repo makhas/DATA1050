@@ -8,7 +8,8 @@ import os
 from unicodedata import *
 import time
 # open a chrome browser using selenium 
-driver = webdriver.Chrome(ChromeDriverManager().install())
+#driver = webdriver.Chrome(ChromeDriverManager().install())
+driver = webdriver.Chrome(executable_path='../../home/gitpod/.pyenv/versions/3.8.12/lib/python3.8/site-packages/selenium/webdriver/chromium/webdriver.py')
 # got to web page where excel file links are located
 driver.get("https://www.dshs.texas.gov/coronavirus/additionaldata/")
 # these options allow selenium to download files 
