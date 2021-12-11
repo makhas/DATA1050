@@ -55,7 +55,8 @@ date = re.findall("- [0-9]+/[0-9]+/[0-9]+ .+", df.iloc[0, 0])
 #print(df.iloc[1, 0])
 #print(str(df.iloc[262:266, 0]).lstrip().rstrip())
 #drop non-data rows
-df2 = df.drop([0, 1, 258, 260, 261, 262, 263, 264, 265, 266, 267])
+df2 = df.drop([0, 1, 258, 260, 261, 262, 263, 264, 265, 266, 2
+
 # clean column names
 df2.iloc[0,:] = df2.iloc[0,:].apply(lambda x: x.replace("\r", ""))
 df2.iloc[0,:] = df2.iloc[0,:].apply(lambda x: x.replace("\n", ""))
@@ -103,45 +104,3 @@ while x < 254:
     x += 1
 #save long form df for dash app
 ts.to_csv("time_series_plotly.csv")
-
-
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-colors = {
-    'background': '#F0F8FF',
-    'text': '#00008B'
-}
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-df = pd.read_csv("time_series_plotly.csv")
-fig = px.scatter(df, x='Date', y='Case Count', color='County')
-fig.update_layout(
-    plot_bgcolor=colors['background'],
-    paper_bgcolor=colors['background'],
-    font_color=colors['text']
-)
-markdown_text = '''
-### Texas COVID-19 Dashboard
-Creator: Truett Bloxsom, [LinkedIn](https://www.linkedin.com/in/truett-bloxsom/), [github](https://github.com/tsbloxsom)
-This is my first interactive dashboard using Dash! Hope you like it!
-This first plot is Texas COVID-19 accumulated cases by county over time
-Source for data: [dshs.texas.gov](https://www.dshs.texas.gov/coronavirus/additionaldata/)
-'''
-app.layout = html.Div([
-    dcc.Markdown(children=markdown_text,
-        style={
-            'backgroundColor': colors['background'],
-            'textAlign': 'center',
-            'color': colors['text']
-        }),
-    
-    dcc.Graph(
-        id='example-graph',
-        figure=fig
-    )
-])
-if __name__ == '__main__':
-    app.run_server(debug=True)
