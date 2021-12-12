@@ -1,148 +1,256 @@
-# import packages
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.options import Options
-import shutil
-import glob
-import os
-from unicodedata import *
-import time
-# open a chrome browser using selenium 
-#driver = webdriver.Chrome(ChromeDriverManager().install())
-driver = webdriver.Chrome(executable_path='../../home/gitpod/.pyenv/versions/3.8.12/lib/python3.8/site-packages/selenium/webdriver/chromium/webdriver.py')
-# got to web page where excel file links are located
-driver.get("https://www.dshs.texas.gov/coronavirus/additionaldata/")
-# these options allow selenium to download files 
-options = Options()
-options.add_experimental_option("browser.download.folderList",2)
-options.add_experimental_option("browser.download.manager.showWhenStarting", False)
-options.add_experimental_option("browser.helperApps.neverAsk.saveToDisk", "application/octet-stream,application/vnd.ms-excel")
-
-# initialize an object to the location on the web page and click on it to download
-link = driver.find_element_by_xpath('/html/body/form/div[4]/div/div[3]/div[2]/div/div/ul[1]/li[1]/a')
-link.click()
-# Wait for 15 seconds to allow chrome to download file
-time.sleep(15)
-
-
-# locating most recent .xlsx downloaded file 
-list_of_files = glob.glob('/Users/tsbloxsom/Downloads/*.xlsx') 
-latest_file = max(list_of_files, key=os.path.getmtime)
-# replace "\" with "/" so file path can be located by python
-latest_file = latest_file.replace("\\", "/")
-latest_file
-# we need to locate the old .xlsx file(s) in the dir we want to store the new xlsx file in
-list_of_files = glob.glob('/Users/tsbloxsom/Documents/GitHub/Texas-census-county-data-project/Automate collecting of data notebooks/*.xlsx') 
-# need to delete old xlsx file(s) so if we download new xlsx file with same name we do not get an error while moving it
-for file in list_of_files:
-    print("deleting old xlsx file:", file)
-    os.remove(file)
-# Move the new file from the download dir to the github dir 
-shutil.move(latest_file,'/Users/tsbloxsom/Documents/GitHub/Texas-census-county-data-project/Automate collecting of data notebooks/')
-
-import pandas as pd
-import re
-pd.set_option('display.max_rows', 500)
-pd.options.display.max_colwidth = 150
-# again we need to locate the .xlsx file 
-list_of_files = glob.glob('/Users/tsbloxsom/Documents/GitHub/Texas-census-county-data-project/Automate collecting of data notebooks/*.xlsx') 
-latest_file = max(list_of_files, key=os.path.getctime)
-print(latest_file.split("\\")[-1])
-df = pd.read_excel("{}".format(latest_file),header=None)
-
-# print out latest COVID data datetime and notes
-date = re.findall("- [0-9]+/[0-9]+/[0-9]+ .+", df.iloc[0, 0])
-#print("COVID cases latest update:", date[0][2:])
-#print(df.iloc[1, 0])
-#print(str(df.iloc[262:266, 0]).lstrip().rstrip())
-#drop non-data rows
-df2 = df.drop([0, 1, 258, 260, 261, 262, 263, 264, 265, 266, 267])
-# clean column names
-df2.iloc[0,:] = df2.iloc[0,:].apply(lambda x: x.replace("\r", ""))
-df2.iloc[0,:] = df2.iloc[0,:].apply(lambda x: x.replace("\n", ""))
-df2.columns = df2.iloc[0]
-clean_df = df2.drop(df2.index[0])
-clean_df = clean_df.set_index("County Name")
-# convert clean_df to a .csv file
-clean_df.to_csv("Texas county COVID cases data clean.csv")
-
-import plotly.express as px
-list_of_files = glob.glob('/Users/tsbloxsom/Documents/GitHub/Texas-census-county-data-project/Automate collecting of data notebooks/*.csv') 
-latest_file = max(list_of_files, key=os.path.getmtime)
-latest_file.split("\\")[-1]
-df = pd.read_csv(latest_file.split("\\")[-1])
-
-# convert df into time series where rows are each date and clean up
-df_t = df.T
-df_t.columns = df_t.iloc[0]
-df_t = df_t.iloc[1:]
-df_t = df_t.iloc[:,:-2]
-# next lets convert the index to a date time, must clean up dates first
-def clean_index(s):
-    s = s.replace("*","")
-    s = s[-5:]
-    s = s + "-2020"
-    #print(s)
-    return s
-df_t.index = df_t.index.map(clean_index)
-df_t.index = pd.to_datetime(df_t.index)
-
-# initalize df with three columns: Date, Case Count, and County
-anderson = df_t.T.iloc[0,:]
-ts = anderson.to_frame().reset_index()
-ts["County"] = "Anderson"
-ts = ts.rename(columns = {"Anderson": "Case Count", "index": "Date"})
-
-# This while loop adds all counties to the above ts so we can input it into plotly
-x = 1
-while x < 254:
-    new_ts = df_t.T.iloc[x,:]
-    new_ts = new_ts.to_frame().reset_index()
-    new_ts["County"] = new_ts.columns[1]
-    new_ts = new_ts.rename(columns = {new_ts.columns[1]: "Case Count", "index": "Date"})
-    ts = pd.concat([ts, new_ts])
-    x += 1
-#save long form df for dash app
-ts.to_csv("time_series_plotly.csv")
-
-
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-colors = {
-    'background': '#F0F8FF',
-    'text': '#00008B'
-}
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-df = pd.read_csv("time_series_plotly.csv")
-fig = px.scatter(df, x='Date', y='Case Count', color='County')
-fig.update_layout(
-    plot_bgcolor=colors['background'],
-    paper_bgcolor=colors['background'],
-    font_color=colors['text']
-)
-markdown_text = '''
-### Texas COVID-19 Dashboard
-Creator: Truett Bloxsom, [LinkedIn](https://www.linkedin.com/in/truett-bloxsom/), [github](https://github.com/tsbloxsom)
-This is my first interactive dashboard using Dash! Hope you like it!
-This first plot is Texas COVID-19 accumulated cases by county over time
-Source for data: [dshs.texas.gov](https://www.dshs.texas.gov/coronavirus/additionaldata/)
-'''
-app.layout = html.Div([
-    dcc.Markdown(children=markdown_text,
-        style={
-            'backgroundColor': colors['background'],
-            'textAlign': 'center',
-            'color': colors['text']
-        }),
+from dash import dcc
+from dash import html
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+import pandas as pd
+import pandas.io.sql as sqlio
+
+import psycopg2
+from psycopg2 import OperationalError
+
+
+## READ COVID DATA FROM OWID REPO
+latest_url = 'https://github.com/owid/covid-19-data/raw/master/public/data/latest/owid-covid-latest.csv'
+df_cov = pd.read_csv(latest_url)
+
+
+hist_url = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
+df_hist = pd.read_csv(hist_url)
+hist_feats = df_hist.columns
+#df_cov = USA=df_hist.loc[df_hist['iso_code'] == 'USA']
+latest_feats = df_cov.columns
+
+## Determining if feature is continuous
+THRESH = 0.01
+def is_cont(data, cat_name):
+    if data[cat_name].dtype != 'float64':
+        return False
+    if data[cat_name].nunique() / data[cat_name].count() < THRESH:
+        return False
+    return True
     
-    dcc.Graph(
-        id='example-graph',
-        figure=fig
+
+# Definitions of constants. This projects uses extra CSS stylesheet at `./assets/style.css`
+COLORS = ['rgb(67,67,67)', 'rgb(115,115,115)', 'rgb(49,130,189)', 'rgb(189,189,189)']
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css', '/assets/style.css']
+
+# Define the dash app first
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+
+# Define component functions
+def target_vis():
+    return html.Div(children=[
+        html.Div(children=[
+            html.H2(children='Target Variable Visualization'),
+            dcc.Dropdown(
+                id='regressor_feature_dd',
+                options=[{'label': col, 'value': col} for col in df_cov.columns],
+                multi=False,
+                placeholder='Feature to Plot Over',
+                value=df_cov.columns[0]
+            ),
+            html.Div(children=[
+                dcc.Graph(id='target_var_fig')]),
+        ])
+    ], className='row')
+
+
+def timeline_vis():
+    return html.Div(children=[
+        html.Div(children=[
+            html.H2("Timeline"),
+            dcc.Dropdown(
+                id='hist_feature_dd',
+                options=[{'label': f, 'value': f} for f in hist_feats if df_hist[f].dtype != 'object'],
+                multi=False,
+                placeholder='Historical Feature to Visualize',
+                value='new_cases_smoothed'
+            ),
+            # @TODO: remove 'date' as a label/value option
+            dcc.Dropdown(
+                id='hist_filter_feat_dd',
+                options=[{'label': f, 'value': f} for f in hist_feats if df_hist[f].dtype == 'object'],
+                multi=False,
+                placeholder='Feature to Filter',
+                value='location'
+            ),
+            dcc.Dropdown(
+                id='hist_filter_val_dd',
+                options=[],
+                multi=True,
+                placeholder='Value to Filter By',
+                value=[df_hist.iloc[0]['location']] # Doesn't do anything, pretty sure. Since returned from callback immediately
+            ),
+            html.Div(children=[
+                dcc.Graph(id='hist_timeline_fig')])
+            ])
+    ])
+
+
+def history_compare():
+    return html.Div(children=[
+        html.Div(children=[
+            html.H2("Historical Comparison"),
+            dcc.Dropdown(
+                id='date_to_compare_dd',
+                options=[{'label': d, 'value': d} for d in df_hist['date'].unique()],
+                multi=False,
+                placeholder='Date to Compare To',
+                value=df_hist.iloc[0]['date'] # put in db_info?
+            ),
+            dcc.Dropdown(
+                id='feats_to_compare_dd',
+                options=[{'label': f, 'value': f} for f in hist_feats],
+                multi=True,
+                placeholder='Features to Compare',
+                value=['new_tests', 'new_cases']
+            ),
+            html.Div(children=[
+                dcc.Graph(id='hist_comparison_fig')
+            ])
+        ])
+    ])
+
+
+# Sequentially add page components to the app's layout
+def dynamic_layout():
+    return html.Div([
+        target_vis(),
+        timeline_vis(),
+        history_compare(),
+    ], className='row', id='content')
+
+
+# set layout to a function which updates upon reloading
+app.layout = dynamic_layout
+
+
+# Defines the dependencies of interactive components
+
+# Updating Target Variable (new_cases) Visualization for Latest Data
+@app.callback(
+    dash.dependencies.Output('target_var_fig', 'figure'),
+    dash.dependencies.Input('regressor_feature_dd', 'value')
+)
+def update_target_visualization(feature_name):
+    # if feature_name != None:
+    target_var = 'new_cases_smoothed'
+    fig = None
+    if feature_name != target_var:
+        if is_cont(df_cov, feature_name):
+            fig = px.scatter(df_cov, x=feature_name, y=target_var, 
+                             title=f"Scatter {target_var} over {feature_name}")
+        else:
+            fig = px.bar(df_cov, x = feature_name, y= target_var,
+                         title=f"BoxPlot {target_var} over {feature_name}")
+
+    fig.update_layout(template='plotly_dark', title='Visualizing Target Variable for Latest Data',
+                          plot_bgcolor='#23262c', paper_bgcolor='#23262c')
+    return fig
+
+
+# Updating Historical Data Visualization
+@app.callback(
+    [dash.dependencies.Output('hist_filter_val_dd', 'options'),
+     dash.dependencies.Output('hist_filter_val_dd', 'value')],
+    dash.dependencies.Input('hist_filter_feat_dd', 'value')
+)
+def update_filter_val_options(filter_feat):
+    not_null_mask = df_hist[filter_feat].notnull()
+    unique_vals = df_hist[filter_feat][not_null_mask].unique()
+    options = [{'label': val, 'value': val} for val in unique_vals]
+    value = options[0]['value']
+    return options, value
+
+
+@app.callback(
+    dash.dependencies.Output('hist_timeline_fig', 'figure'),
+    [dash.dependencies.Input('hist_feature_dd', 'value'),
+     dash.dependencies.Input('hist_filter_feat_dd', 'value'),
+     dash.dependencies.Input('hist_filter_val_dd', 'value')]
+)
+def update_timeline_vis(plot_feature, filter_feature, filter_value):
+    hist_time_feature = 'date' # can put in db_info
+    toPlot = []
+    print(filter_value)
+    for v in filter_value:
+        #print(v)
+        hist_filter_mask = df_hist[filter_feature] == v
+        df_hist_filtered = df_hist[hist_filter_mask]
+        df_hist_filtered = df_hist_filtered.sort_values(by=[hist_time_feature], axis=0)
+        toPlot.append(df_hist_filtered)
+
+    fig = go.Figure()
+    for i, filtered in enumerate(toPlot):
+        fig.add_trace(go.Scatter(x=df_hist[hist_time_feature],y=filtered[plot_feature], mode="lines", name=str(filter_value[i])))
+
+    fig.update_layout(template='plotly_dark', title=f'Historical Timeline of {plot_feature} Over {filter_feature}',
+                          plot_bgcolor='#23262c', paper_bgcolor='#23262c')
+    return fig
+
+
+# Updating Historical Comparison Visualization
+@app.callback(
+    dash.dependencies.Output('hist_comparison_fig', 'figure'),
+    [dash.dependencies.Input('date_to_compare_dd', 'value'),
+     dash.dependencies.Input('feats_to_compare_dd', 'value')]
+)
+def update_history_compare_vis(hist_date, features):
+    print("FEATURES:")
+    print(features)
+    # Historical DF to compare to
+    hist_date_mask = df_hist['date'] == hist_date
+    df_hist_date = df_hist[df_hist['date']==hist_date]
+
+    # Concatenating historical and latest DF
+    df_cov_new = df_cov.rename(columns = {'last_updated_date':'date'})
+    df_compare = pd.concat([df_cov_new, df_hist_date], sort=False).reset_index()
+
+    feats_to_plot = ['date', 'location'] + features
+    df_compare = df_compare[feats_to_plot]
+
+    # Setting up DF to plot, 'grouped stacked' bar plot
+    df_total = pd.DataFrame(columns=feats_to_plot)
+    df_total['feature'] = None
+    df_total['feature_val'] = None
+    for f in features:
+        feats_to_remove = set(features).difference(set([f]))
+        df_new = df_compare.rename(columns={f:'feature_val'}).drop(feats_to_remove, axis=1)
+        df_new['feature'] = f
+        df_total = pd.concat([df_total, df_new])
+    
+    #print(df_total.shape)
+
+    # Creating figure
+    fig = go.Figure()
+    # Color setup
+    rgb=[55, 83, 109]
+    signs = np.random.randint(3, size=(df_total.shape[0], 3))
+
+    # By location (@TODO: make location a dropdown option as well)
+    for i, loc in enumerate(df_total['location'].unique()):
+        df_row = df_total[df_total['location']==loc]
+        # print("DF ROW")
+        # print(df_row)
+        rgb_i = [(c + signs[i, j] * i * 15)%256 for j, c in enumerate(rgb)]
+        # if df_total.iloc[i]['date'] >= '2021-12-10' or df_total.iloc[i]['date'] == '2020-06-03': # @TODO: change latest date
+        fig.add_trace(go.Bar(x=[df_row.feature, df_row.date],
+                        y = df_row.feature_val,
+                        marker_color=f'rgb({rgb_i[0]}, {rgb_i[1]}, {rgb_i[2]})', name=loc
+                    ))
+
+    fig.update_layout(
+        barmode='stack',
+        bargap=0.15, # gap between bars of adjacent location coordinates.
+        bargroupgap=0.1 # gap between bars of the same location coordinate.
     )
-])
+    fig.update_layout(template='plotly_dark', title=f'Historical Comparison by Feature and Location',
+                          plot_bgcolor='#23272c', paper_bgcolor='#23272c')
+
+    return fig
+
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=1050, host='0.0.0.0')
