@@ -41,7 +41,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 
 # Define component functions
-def target_vis():
+def xy_plot():
     return html.Div(children=[
         html.Div(children=[
             html.H2(children='Target Variable Visualization'),
@@ -58,10 +58,10 @@ def target_vis():
     ], className='row')
 
 
-def timeline_vis():
+def timeline_comparator():
     return html.Div(children=[
         html.Div(children=[
-            html.H2("Timeline"),
+            html.H2("Compare Trends of Features over "),
             dcc.Dropdown(
                 id='hist_feature_dd',
                 options=[{'label': f, 'value': f} for f in hist_feats if df_hist[f].dtype != 'object'],
@@ -90,37 +90,13 @@ def timeline_vis():
     ])
 
 
-def history_compare():
-    return html.Div(children=[
-        html.Div(children=[
-            html.H2("Historical Comparison"),
-            dcc.Dropdown(
-                id='date_to_compare_dd',
-                options=[{'label': d, 'value': d} for d in df_hist['date'].unique()],
-                multi=False,
-                placeholder='Date to Compare To',
-                value=df_hist.iloc[0]['date'] # put in db_info?
-            ),
-            dcc.Dropdown(
-                id='feats_to_compare_dd',
-                options=[{'label': f, 'value': f} for f in hist_feats],
-                multi=True,
-                placeholder='Features to Compare',
-                value=['new_tests', 'new_cases']
-            ),
-            html.Div(children=[
-                dcc.Graph(id='hist_comparison_fig')
-            ])
-        ])
-    ])
 
 
 # Sequentially add page components to the app's layout
 def dynamic_layout():
     return html.Div([
-        target_vis(),
-        timeline_vis(),
-        history_compare(),
+        xy_plot(),
+        timeline_comparator(),
     ], className='row', id='content')
 
 
@@ -185,72 +161,14 @@ def update_timeline_vis(plot_feature, filter_feature, filter_value):
 
     fig = go.Figure()
     for i, filtered in enumerate(toPlot):
-        fig.add_trace(go.Scatter(x=df_hist[hist_time_feature],y=filtered[plot_feature], mode="lines", name=str(filter_value[i])))
+        fig.add_trace(go.Scatter(x=df_hist[hist_time_feature],y=filtered[plot_feature], mode="markers", name=str(filter_value[i])))
 
     fig.update_layout(template='plotly_dark', title=f'Historical Timeline of {plot_feature} Over {filter_feature}',
                           plot_bgcolor='#23262c', paper_bgcolor='#23262c')
     return fig
 
 
-# Updating Historical Comparison Visualization
-@app.callback(
-    dash.dependencies.Output('hist_comparison_fig', 'figure'),
-    [dash.dependencies.Input('date_to_compare_dd', 'value'),
-     dash.dependencies.Input('feats_to_compare_dd', 'value')]
-)
-def update_history_compare_vis(hist_date, features):
-    print("FEATURES:")
-    print(features)
-    # Historical DF to compare to
-    hist_date_mask = df_hist['date'] == hist_date
-    df_hist_date = df_hist[df_hist['date']==hist_date]
 
-    # Concatenating historical and latest DF
-    df_cov_new = df_cov.rename(columns = {'last_updated_date':'date'})
-    df_compare = pd.concat([df_cov_new, df_hist_date], sort=False).reset_index()
-
-    feats_to_plot = ['date', 'location'] + features
-    df_compare = df_compare[feats_to_plot]
-
-    # Setting up DF to plot, 'grouped stacked' bar plot
-    df_total = pd.DataFrame(columns=feats_to_plot)
-    df_total['feature'] = None
-    df_total['feature_val'] = None
-    for f in features:
-        feats_to_remove = set(features).difference(set([f]))
-        df_new = df_compare.rename(columns={f:'feature_val'}).drop(feats_to_remove, axis=1)
-        df_new['feature'] = f
-        df_total = pd.concat([df_total, df_new])
-    
-    #print(df_total.shape)
-
-    # Creating figure
-    fig = go.Figure()
-    # Color setup
-    rgb=[55, 83, 109]
-    signs = np.random.randint(3, size=(df_total.shape[0], 3))
-
-    # By location (@TODO: make location a dropdown option as well)
-    for i, loc in enumerate(df_total['location'].unique()):
-        df_row = df_total[df_total['location']==loc]
-        # print("DF ROW")
-        # print(df_row)
-        rgb_i = [(c + signs[i, j] * i * 15)%256 for j, c in enumerate(rgb)]
-        # if df_total.iloc[i]['date'] >= '2021-12-10' or df_total.iloc[i]['date'] == '2020-06-03': # @TODO: change latest date
-        fig.add_trace(go.Bar(x=[df_row.feature, df_row.date],
-                        y = df_row.feature_val,
-                        marker_color=f'rgb({rgb_i[0]}, {rgb_i[1]}, {rgb_i[2]})', name=loc
-                    ))
-
-    fig.update_layout(
-        barmode='stack',
-        bargap=0.15, # gap between bars of adjacent location coordinates.
-        bargroupgap=0.1 # gap between bars of the same location coordinate.
-    )
-    fig.update_layout(template='plotly_dark', title=f'Historical Comparison by Feature and Location',
-                          plot_bgcolor='#23272c', paper_bgcolor='#23272c')
-
-    return fig
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=1050, host='0.0.0.0')
