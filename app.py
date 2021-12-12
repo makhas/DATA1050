@@ -99,8 +99,8 @@ def line_graph(stack=False):
     df = df_cov
     if df is None:
         return go.Figure()
-    sources = ['Wind', 'Hydro', 'Fossil/Biomass', 'Nuclear']
-    x = df['Datetime']
+    sources = ['total_cases', 'new_cases', 'location', 'total_deaths_per_million']
+    x = df['date']
     fig = go.Figure()
     for i, s in enumerate(sources):
         fig.add_trace(go.Scatter(x=x, y=df[s], mode='lines', name=s,
