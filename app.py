@@ -88,6 +88,53 @@ def timeline_comparator():
             ])
     ])
 
+#def compare_features():
+#    return html.Div(children=[
+#        html.Div(children=[
+#            html.H2("Historical Comparison"),
+#            dcc.Dropdown(
+#                id='date_to_compare_dd',
+#                options=[{'label': d, 'value': d} for d in df_hist['date'].unique()],
+#                multi=False,
+#                placeholder='Date to Compare To',
+#                value=df_hist.iloc[0]['date'] # put in db_info?
+#            ),
+#            dcc.Dropdown(
+#                id='feats_to_compare_dd',
+#                options=[{'label': f, 'value': f} for f in hist_feats],
+#                multi=True,
+#                placeholder='Features to Compare',
+#                value=['new_tests', 'new_cases']
+#            ),
+#            html.Div(children=[
+#                dcc.Graph(id='hist_comparison_fig')
+#            ])
+#        ])
+#    ])
+
+#def line_graph(stack=False):
+    #df = df_latest
+    #if df is None:
+    #    return go.Figure()
+    #sources = ['total_cases', 'new_cases', 'location', 'total_deaths_per_million']
+    #x = df['date']
+    #fig = go.Figure()
+    #for i, s in enumerate(sources):
+    #    fig.add_trace(go.Scatter(x=x, y=df[s], mode='lines', name=s,
+    #                             line={'width': 2, 'color': COLORS[i]},
+    #                             stackgroup='stack' if stack else None))
+    #fig.add_trace(go.Scatter(x=x, y=df['Load'], mode='lines', name='Load',
+    #                         line={'width': 2, 'color': 'orange'}))
+    #title = ''
+    #if stack:
+    #    title += ' [Stacked]'
+    #fig.update_layout(template='plotly_dark',
+    #                  title=title,
+    #                  plot_bgcolor='#23272c',
+    #                  paper_bgcolor='#23272c',
+    #                  yaxis_title='MW',
+    #                  xaxis_title='Date/Time')
+    #return fig
 
 
 # Sequentially add page components to the app's layout
@@ -95,6 +142,7 @@ def dynamic_layout():
     return html.Div([
         xy_plot(),
         timeline_comparator(),
+        #dcc.Graph(id='stacked-trend-graph', figure=line_graph(stack=True)),
     ], className='row', id='content')
 
 
