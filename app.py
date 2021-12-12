@@ -81,7 +81,7 @@ def timeline_comparator():
                 options=[],
                 multi=True,
                 placeholder='Value(s) to Filter By',
-                value=[df_h.iloc[0]['location']] 
+                value=[df_h.iloc[0]['location'],df_h.iloc[3]['location']] 
             ),
             html.Div(children=[
                 dcc.Graph(id='timeline_fig')])
@@ -110,7 +110,7 @@ app.layout = dynamic_layout
     [dash.dependencies.Input('x_feature_dd', 'value'),
     dash.dependencies.Input('y_feature_dd', 'value')]
 )
-def update_target_visualization(feature_name, target_var):
+def update_xy_plot(feature_name, target_var):
     #target_var = 'new_cases_smoothed'
     fig = None
     if feature_name != target_var:
@@ -146,7 +146,7 @@ def update_filter_val_options(filter_feat):
      dash.dependencies.Input('filter_feat_dd', 'value'),
      dash.dependencies.Input('filter_val_dd', 'value')]
 )
-def update_timeline_vis(plot_feature, filter_feature, filter_value):
+def update_timeline_comparator(plot_feature, filter_feature, filter_value):
     hist_time_feature = 'date' # can put in db_info
     toPlot = []
     for v in filter_value:
