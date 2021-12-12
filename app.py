@@ -6,18 +6,21 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 import pandas.io.sql as sqlio
+from fetch_data_from_db import *
 
 import psycopg2
 from psycopg2 import OperationalError
 
 
 ## READ COVID DATA FROM OWID REPO
-latest_url = 'https://github.com/owid/covid-19-data/raw/master/public/data/latest/owid-covid-latest.csv'
-df_cov = pd.read_csv(latest_url)
+# latest_url = 'https://github.com/owid/covid-19-data/raw/master/public/data/latest/owid-covid-latest.csv'
+# df_cov = pd.read_csv(latest_url)
+# hist_url = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
+# df_hist = pd.read_csv(hist_url)
 
+## READ COVID DATA FROM DB
+df_hist, df_cov = fetch_entire_tables()
 
-hist_url = 'https://covid.ourworldindata.org/data/owid-covid-data.csv'
-df_hist = pd.read_csv(hist_url)
 hist_feats = df_hist.columns
 #df_cov = USA=df_hist.loc[df_hist['iso_code'] == 'USA']
 latest_feats = df_cov.columns
