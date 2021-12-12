@@ -8,14 +8,12 @@ import pandas as pd
 import pandas.io.sql as sqlio
 from fetch_data_from_db import *
 
-import psycopg2
-from psycopg2 import OperationalError
-
 ## READ COVID DATA FROM OWID REPO
-df, df_latest = fetch_entire_tables()
-
-hist_feats = df.columns
-
+df_h, df_latest = fetch_entire_tables()
+#print(df_h.shape, df_h.head())
+#print(df_latest.shape, df_latest.head())
+hist_feats = df_h.columns
+#print(hist_feats)
 latest_feats = df_latest.columns
 ## Determining if feature is continuous
 THRESH = 0.01
@@ -66,14 +64,14 @@ def timeline_comparator():
             html.H2("Compare Trends of a Target for a Value"),
             dcc.Dropdown(
                 id='feature_dd',
-                options=[{'label': f, 'value': f} for f in hist_feats if df[f].dtype != 'object'],
+                options=[{'label': f, 'value': f} for f in hist_feats if df_h[f].dtype == 'object'],
                 multi=False,
                 placeholder='Historical Feature to Visualize',
                 value='new_cases_smoothed'
             ),
             dcc.Dropdown(
                 id='filter_feat_dd',
-                options=[{'label': f, 'value': f} for f in hist_feats if df[f].dtype == 'object'],
+                options=[{'label': f, 'value': f} for f in hist_feats if df_h[f].dtype == 'object'],
                 multi=False,
                 placeholder='Feature to Filter',
                 value='location'
@@ -83,36 +81,13 @@ def timeline_comparator():
                 options=[],
                 multi=True,
                 placeholder='Value(s) to Filter By',
-                value=[df.iloc[0]['location']] 
+                value=[df_h.iloc[0]['location']] 
             ),
             html.Div(children=[
                 dcc.Graph(id='timeline_fig')])
             ])
     ])
 
-def line_graph(stack=False):
-    df = df_cov
-    if df is None:
-        return go.Figure()
-    sources = ['Wind', 'Hydro', 'Fossil/Biomass', 'Nuclear']
-    x = df['Datetime']
-    fig = go.Figure()
-    for i, s in enumerate(sources):
-        fig.add_trace(go.Scatter(x=x, y=df[s], mode='lines', name=s,
-                                 line={'width': 2, 'color': COLORS[i]},
-                                 stackgroup='stack' if stack else None))
-    fig.add_trace(go.Scatter(x=x, y=df['Load'], mode='lines', name='Load',
-                             line={'width': 2, 'color': 'orange'}))
-    title = ''
-    if stack:
-        title += ' [Stacked]'
-    fig.update_layout(template='plotly_dark',
-                      title=title,
-                      plot_bgcolor='#23272c',
-                      paper_bgcolor='#23272c',
-                      yaxis_title='MW',
-                      xaxis_title='Date/Time')
-    return fig
 
 
 # Sequentially add page components to the app's layout
@@ -120,7 +95,6 @@ def dynamic_layout():
     return html.Div([
         xy_plot(),
         timeline_comparator(),
-        dcc.Graph(id='stacked-trend-graph', figure=line_graph(stack=True)),
     ], className='row', id='content')
 
 
@@ -159,8 +133,8 @@ def update_target_visualization(feature_name, target_var):
     dash.dependencies.Input('filter_feat_dd', 'value')
 )
 def update_filter_val_options(filter_feat):
-    not_null_mask = df[filter_feat].notnull()
-    unique_vals = df[filter_feat][not_null_mask].unique()
+    not_null_mask = df_h[filter_feat].notnull()
+    unique_vals = df_h[filter_feat][not_null_mask].unique()
     options = [{'label': val, 'value': val} for val in unique_vals]
     value = options[0]['value']
     return options, value
@@ -177,14 +151,14 @@ def update_timeline_vis(plot_feature, filter_feature, filter_value):
     toPlot = []
     for v in filter_value:
         #print(v)
-        hist_filter_mask = df[filter_feature] == v
-        df_filtered = df[hist_filter_mask]
+        hist_filter_mask = df_h[filter_feature] == v
+        df_filtered = df_h[hist_filter_mask]
         df_filtered = df_filtered.sort_values(by=[hist_time_feature], axis=0)
         toPlot.append(df_filtered)
 
     fig = go.Figure()
     for i, filtered in enumerate(toPlot):
-        fig.add_trace(go.Scatter(x=df[hist_time_feature],y=filtered[plot_feature], mode="markers", name=str(filter_value[i])))
+        fig.add_trace(go.Scatter(x=df_h[hist_time_feature],y=filtered[plot_feature], mode="markers", name=str(filter_value[i])))
 
     fig.update_layout(template='plotly', title=f'Historical Timeline of {plot_feature} Over {filter_feature} for Selected Values',
                           plot_bgcolor='#D3D3D3', paper_bgcolor='#D3D3D3')
