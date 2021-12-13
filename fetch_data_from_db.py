@@ -33,6 +33,7 @@ def fetch_entire_tables():
     cur.execute("SELECT * FROM covid_data_latest")
     data2 = pd.DataFrame(cur.fetchall(), columns=[x[0] for x in cur.description])
     conn.close()
+    os.remove("GAC.json")
     return data, data2
 
 def fetch_data_from_website():
