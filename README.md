@@ -15,7 +15,7 @@ For example, if your github username is lheft, the url would be as follows:
 <center>http://gitpod.io/#/https://github.com/lheft/data1050-demo-project-f20</center>
 
 
-This server runs through GCP, so to run this from a local workspace or in GitPod, contact one of the contributors to this repo for Key_CREDENTIALS to access the database instance and run the dashboard.
+This webapp runs through GCP. In order to run this from a local workspace or in GitPod, contact one of the contributors to this repo for Key_CREDENTIALS to access the database instance and run the dashboard.
 
 Once key_CREDENTIALS has been secured, run the following command to launch the webapp.
 
