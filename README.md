@@ -25,5 +25,3 @@ INSERT IMAGES BELOW
 ---
 1. Open the gitpod instance and run these commands to set persistent environment variables associated with your user for the current repository:
 
-Command to run the app:
-export KEY="mOcbKU0Rvg9BCoOOv-a7mH0_XQjWCDN2Tt9uVP7_AFQ=" && pip install -r requirements.txt && python app.py
