@@ -14,11 +14,12 @@ def decrypt(filename, key):
         file.write(decrypted_data)
 
 def create_connection_with_db():
-    HOST = os.getenv("HOST")
-    DB_USER = os.getenv("DB_USER")
-    PORT = os.getenv("PORT")
-    DB_PASS = os.getenv("DB_PASS")
-    DB_NAME = os.getenv("DB_NAME")
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "GAC.json"
+    HOST = "t-scholar-233105:us-central1:project1050"
+    DB_USER = "postgres"
+    PORT = "pg8000"
+    DB_PASS = "tempPassword123"
+    DB_NAME = "project"
     conn = connector.connect(HOST, PORT, 
                             user=DB_USER, password=DB_PASS, db=DB_NAME)
     cursor = conn.cursor()
