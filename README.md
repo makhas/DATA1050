@@ -25,13 +25,14 @@ INSERT IMAGES BELOW
 ---
 1. Open the gitpod instance and run these commands to set persistent environment variables associated with your user for the current repository:
 
-''gp env HOST="t-scholar-233105:us-central1:project1050"''
-''gp env PORT="pg8000"''
-''gp env DB_USER="postgres"''
-''gp env DB_PASS="tempPassword123"''
-''gp env DB_NAME="project"''
-''gp env KEY="mOcbKU0Rvg9BCoOOv-a7mH0_XQjWCDN2Tt9uVP7_AFQ="''
-''gp env GOOGLE_APPLICATION_CREDENTIALS="GAC.json"''
+gp env HOST="t-scholar-233105:us-central1:project1050"
+gp env PORT="pg8000"
+gp env DB_USER="postgres"
+gp env DB_PASS="tempPassword123"
+gp env DB_NAME="project"
+gp env KEY="mOcbKU0Rvg9BCoOOv-a7mH0_XQjWCDN2Tt9uVP7_AFQ="
+gp env GOOGLE_APPLICATION_CREDENTIALS="GAC.json"
+
 
 Now close the gitpod window and reopen it and create a new workspace since the commands do not modify your current terminal session, but rather persists the variables for the next workspace on this repository.
 
