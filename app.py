@@ -114,29 +114,28 @@ def timeline_comparator():
 #        ])
 #    ])
 
-#def line_graph(stack=False):
-    #df = df_latest
-    #if df is None:
-    #    return go.Figure()
-    #sources = ['total_cases', 'new_cases', 'location', 'total_deaths_per_million']
-    #x = df['date']
-    #fig = go.Figure()
-    #for i, s in enumerate(sources):
-    #    fig.add_trace(go.Scatter(x=x, y=df[s], mode='lines', name=s,
-    #                             line={'width': 2, 'color': COLORS[i]},
-    #                             stackgroup='stack' if stack else None))
-    #fig.add_trace(go.Scatter(x=x, y=df['Load'], mode='lines', name='Load',
-    #                         line={'width': 2, 'color': 'orange'}))
-    #title = ''
-    #if stack:
-    #    title += ' [Stacked]'
-    #fig.update_layout(template='plotly_dark',
-    #                  title=title,
-    #                  plot_bgcolor='#23272c',
-    #                  paper_bgcolor='#23272c',
-    #                  yaxis_title='MW',
-    #                  xaxis_title='Date/Time')
-    #return fig
+def line_graph(stack=False):
+    if df is None:
+        return go.Figure()
+    sources = ['icu_patients_per_million', 'new_cases', 'total_vaccinations_per_hundred', 'total_deaths_per_million']
+    x = df['date']
+    fig = go.Figure()
+    for i, s in enumerate(sources):
+        fig.add_trace(go.Scatter(x=x, y=df[s], mode='lines', name=s,
+                                 line={'width': 2, 'color': COLORS[i]},
+                                 stackgroup='stack' if stack else None))
+    fig.add_trace(go.Scatter(x=x, y=df['total_cases'], mode='lines', name='total_cases',
+                             line={'width': 2, 'color': 'orange'}))
+    title = 'Line Graph'
+    if stack:
+        title += ' [Stacked]'
+    fig.update_layout(template='plotly_dark',
+                      title=title,
+                      plot_bgcolor='#23272c',
+                      paper_bgcolor='#23272c',
+                      yaxis_title='MW',
+                      xaxis_title='Date/Time')
+    return fig
 
 
 # Sequentially add page components to the app's layout
@@ -144,7 +143,7 @@ def dynamic_layout():
     return html.Div([
         xy_plot(),
         timeline_comparator(),
-        #dcc.Graph(id='stacked-trend-graph', figure=line_graph(stack=True)),
+        dcc.Graph(id='stacked-trend-graph', figure=line_graph(stack=True)),
     ], className='row', id='content')
 
 
